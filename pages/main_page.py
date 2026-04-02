@@ -1,78 +1,59 @@
-"""
-Page Object для главной страницы сервиса «Самокат».
-"""
-
+import allure
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium.common.exceptions import TimeoutException
 from pages.base_page import BasePage
 
 
 class MainPage(BasePage):
-    """Главная страница qa-scooter.praktikum-services.ru"""
 
-    # Кнопки «Заказать» — используем contains() на случай если текст в дочернем теге
-    ORDER_BUTTON_TOP = (By.XPATH, "(//button[contains(., 'Заказать')])[1]")
-    ORDER_BUTTON_BOTTOM = (By.XPATH, "(//button[contains(., 'Заказать')])[2]")
+    ORDER_BUTTON_TOP = (By.XPATH, "//button[contains(@class,'Button_Button') and not(contains(@class,'UltraBig')) and contains(text(),'Заказать')]")
+    ORDER_BUTTON_BOTTOM = (By.XPATH, "//button[contains(@class,'Button_UltraBig')]")
 
-    # Логотипы
     LOGO_SAMOKAT = (By.XPATH, "//a[contains(@class,'Header_LogoScooter')]")
     LOGO_YANDEX = (By.XPATH, "//a[contains(@class,'Header_LogoYandex')]")
-
-    # Кнопка закрытия баннера с куками
     COOKIE_BUTTON = (By.XPATH, "//button[contains(., 'да все привыкли')]")
 
-    # FAQ: заголовок и панель N-го вопроса (N от 0 до 7)
-    def faq_heading(self, index):
-        return (By.XPATH, f"//div[@id='accordion__heading-{index}']")
+    @staticmethod
+    def faq_heading(index):
+        return By.XPATH, f"//div[@id='accordion__heading-{index}']"
 
-    def faq_panel(self, index):
-        return (By.XPATH, f"//div[@id='accordion__panel-{index}']")
+    @staticmethod
+    def faq_panel(index):
+        return By.XPATH, f"//div[@id='accordion__panel-{index}']"
 
-
-    # --- Методы ---
-
+    @allure.step("Открыть главную страницу")
     def open(self):
-        """Открыть главную страницу и закрыть баннер куков если появится."""
         self.driver.get(self.BASE_URL)
         self._dismiss_cookies()
 
     def _dismiss_cookies(self):
-        """Закрыть баннер куков если он появился."""
         try:
-            btn = WebDriverWait(self.driver, 4).until(
-                EC.element_to_be_clickable(self.COOKIE_BUTTON)
-            )
-            btn.click()
-        except Exception:
-            pass  # Баннер не появился — всё нормально
+            self.wait.until(lambda d: d.find_elements(*self.COOKIE_BUTTON))
+            self.click(self.COOKIE_BUTTON)
+        except TimeoutException:
+            pass
 
+    @allure.step("Нажать кнопку Заказать (верхняя)")
     def click_order_top(self):
-        """Нажать кнопку «Заказать» вверху страницы."""
         self.click(self.ORDER_BUTTON_TOP)
 
+    @allure.step("Нажать кнопку Заказать (нижняя)")
     def click_order_bottom(self):
-        """Прокрутить до нижней кнопки «Заказать» и кликнуть через JS
-        (хедер sticky перекрывает кнопку при обычном клике)."""
-        element = self.scroll_into_view(self.ORDER_BUTTON_BOTTOM)
-        self.driver.execute_script("arguments[0].click();", element)
+        self.scroll_and_js_click(self.ORDER_BUTTON_BOTTOM)
 
+    @allure.step("Открыть вопрос FAQ")
     def click_faq_question(self, index):
-        """Прокрутить до вопроса FAQ и кликнуть через JS (обходит перекрытие картинкой)."""
-        heading_locator = self.faq_heading(index)
-        element = self.scroll_into_view(heading_locator)
-        self.driver.execute_script("arguments[0].click();", element)
+        self.scroll_and_js_click(self.faq_heading(index))
 
+    @allure.step("Получить текст ответа FAQ")
     def get_faq_answer_text(self, index):
-        """Получить текст ответа на вопрос FAQ (ждём пока панель раскроется)."""
-        panel_locator = self.faq_panel(index)
-        panel = self.is_visible(panel_locator)
+        panel = self.is_visible(self.faq_panel(index))
         return panel.text
 
+    @allure.step("Кликнуть логотип Самоката")
     def click_logo_samokat(self):
-        element = self.find_clickable(self.LOGO_SAMOKAT)
-        self.driver.execute_script("arguments[0].click();", element)
+        self.js_click(self.LOGO_SAMOKAT)
 
+    @allure.step("Кликнуть логотип Яндекса")
     def click_logo_yandex(self):
-        element = self.find_clickable(self.LOGO_YANDEX)
-        self.driver.execute_script("arguments[0].click();", element)
+        self.js_click(self.LOGO_YANDEX)

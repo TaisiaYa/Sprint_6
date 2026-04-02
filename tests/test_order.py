@@ -1,79 +1,17 @@
-"""
-Тесты для оформления заказа самоката.
-
-Позитивный сценарий (оба набора данных):
-1. Нажать кнопку «Заказать» (верхняя или нижняя — разные точки входа)
-2. Заполнить форму — Шаг 1: личные данные
-3. Заполнить форму — Шаг 2: детали аренды
-4. Подтвердить заказ и проверить всплывающее окно об успехе
-5а. Набор 1 (top): проверить, что логотип «Самоката» ведёт на главную
-5б. Набор 2 (bottom): проверить, что логотип «Яндекса» открывает Дзен в новой вкладке
-
-Параметризация: два набора данных, две точки входа.
-"""
-
 import allure
-import pytest
-from selenium.webdriver.support.wait import WebDriverWait
 from pages.main_page import MainPage
 from pages.order_page import OrderPage, OrderPageStep2
-
-
-# Два набора тестовых данных
-ORDER_DATA = [
-    {
-        "button": "top",
-        "name": "Иван",
-        "last_name": "Иванов",
-        "address": "Москва, улица Ленина, 1",
-        "metro": "Черкизовская",
-        "phone": "+79991234567",
-        "date": "05.04.2026",
-        "rent_period": "сутки",
-        "color": "чёрный жемчуг",
-        "comment": "Тестовый заказ 1",
-    },
-    {
-        "button": "bottom",
-        "name": "Мария",
-        "last_name": "Петрова",
-        "address": "Москва, улица Пушкина, 10",
-        "metro": "Сокольники",
-        "phone": "+79997654321",
-        "date": "06.04.2026",
-        "rent_period": "двое суток",
-        "color": "серая безысходность",
-        "comment": "Тестовый заказ 2",
-    },
-]
+from data import ORDER_DATA_TOP, ORDER_DATA_BOTTOM
 
 
 @allure.feature("Оформление заказа самоката")
 class TestOrder:
-    """Позитивный сценарий заказа самоката — обе точки входа."""
 
-    @allure.title("Полный флоу заказа: кнопка '{button}' + проверка логотипа")
-    @pytest.mark.parametrize("order_data", ORDER_DATA, ids=["top_button", "bottom_button"])
-    def test_order_full_flow(self, driver, order_data):
-        """
-        Полный позитивный сценарий:
-        - нажать «Заказать» (верх или низ страницы)
-        - заполнить форму (шаг 1 и шаг 2)
-        - проверить всплывающее окно «Заказ оформлен»
-        - проверить логотип: набор 1 → Самокат → главная; набор 2 → Яндекс → Дзен
-        """
-        main_page = MainPage(driver)
+    @staticmethod
+    def _fill_and_submit_order(driver, order_data):
+        """Вспомогательный метод: заполняет форму и подтверждает заказ."""
         order_page = OrderPage(driver)
         step2 = OrderPageStep2(driver)
-
-        with allure.step("Открыть главную страницу"):
-            main_page.open()
-
-        with allure.step(f"Нажать кнопку «Заказать» ({order_data['button']})"):
-            if order_data["button"] == "top":
-                main_page.click_order_top()
-            else:
-                main_page.click_order_bottom()
 
         with allure.step("Шаг 1 — заполнить личные данные"):
             order_page.fill_step1(
@@ -92,37 +30,51 @@ class TestOrder:
                 comment=order_data["comment"],
             )
 
-        with allure.step("Нажать «Заказать» и подтвердить в модальном окне"):
+        with allure.step("Нажать Заказать и подтвердить"):
             step2.submit_order()
 
-        with allure.step("Проверить: появилось всплывающее окно «Заказ оформлен»"):
+        with allure.step("Проверить всплывающее окно «Заказ оформлен»"):
             assert step2.is_success_modal_shown(), (
                 "Модальное окно об успешном создании заказа не появилось"
             )
 
+        return step2
 
-        # Набор 1 (top): проверяем логотип «Самоката» → главная страница
-        if order_data["button"] == "top":
-            with allure.step("Кликнуть логотип «Самоката» и проверить переход на главную"):
-                main_page.click_logo_samokat()
-                assert driver.current_url == MainPage.BASE_URL, (
-                    f"Ожидали {MainPage.BASE_URL}, получили {driver.current_url}"
-                )
+    @allure.title("Заказ через верхнюю кнопку — проверка логотипа Самоката")
+    def test_order_top_button_logo_samokat(self, driver):
+        """Верхняя кнопка Заказать → заполнить форму → логотип Самоката → главная."""
+        main_page = MainPage(driver)
 
-        # Набор 2 (bottom): проверяем логотип «Яндекса» → Дзен в новой вкладке
-        else:
-            with allure.step("Кликнуть логотип «Яндекса» и проверить открытие Дзена"):
-                original_window = driver.current_window_handle
-                main_page.click_logo_yandex()
+        with allure.step("Открыть главную страницу"):
+            main_page.open()
 
-                wait = WebDriverWait(driver, 15)
-                wait.until(lambda d: len(d.window_handles) > 1)
+        with allure.step("Нажать верхнюю кнопку Заказать"):
+            main_page.click_order_top()
 
-                new_window = [w for w in driver.window_handles if w != original_window][0]
-                driver.switch_to.window(new_window)
-                wait.until(lambda d: d.current_url != "about:blank")
+        self._fill_and_submit_order(driver, ORDER_DATA_TOP)
 
-                current_url = driver.current_url
-                assert "yandex" in current_url or "dzen" in current_url, (
-                    f"Ожидали URL с 'yandex' или 'dzen', получили: {current_url}"
-                )
+        with allure.step("Кликнуть логотип Самоката и проверить переход на главную"):
+            main_page.click_logo_samokat()
+            assert main_page.get_current_url() == main_page.BASE_URL, (
+                f"Ожидали {main_page.BASE_URL}, получили {main_page.get_current_url()}"
+            )
+
+    @allure.title("Заказ через нижнюю кнопку — проверка логотипа Яндекса")
+    def test_order_bottom_button_logo_yandex(self, driver):
+        """Нижняя кнопка Заказать → заполнить форму → логотип Яндекса → Дзен."""
+        main_page = MainPage(driver)
+
+        with allure.step("Открыть главную страницу"):
+            main_page.open()
+
+        with allure.step("Нажать нижнюю кнопку Заказать"):
+            main_page.click_order_bottom()
+
+        self._fill_and_submit_order(driver, ORDER_DATA_BOTTOM)
+
+        with allure.step("Кликнуть логотип Яндекса и проверить открытие Дзена"):
+            main_page.click_logo_yandex()
+            new_url = main_page.switch_to_new_tab()
+            assert "yandex" in new_url or "dzen" in new_url, (
+                f"Ожидали URL с 'yandex' или 'dzen', получили: {new_url}"
+            )

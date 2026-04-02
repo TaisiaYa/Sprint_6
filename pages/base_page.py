@@ -1,53 +1,70 @@
-"""
-Базовый класс для всех страниц (Page Object).
-Содержит общие методы работы с элементами.
-"""
-
+import allure
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
 class BasePage:
-    """Родительский класс — все остальные страницы наследуются от него."""
-
     BASE_URL = "https://qa-scooter.praktikum-services.ru/"
 
     def __init__(self, driver):
         self.driver = driver
         self.wait = WebDriverWait(driver, 15)
 
+    @allure.step("Открыть главную страницу")
     def open(self):
-        """Открыть главную страницу сайта."""
         self.driver.get(self.BASE_URL)
 
+    @allure.step("Найти элемент")
     def find(self, locator):
-        """Дождаться появления элемента и вернуть его."""
         return self.wait.until(EC.presence_of_element_located(locator))
 
+    @allure.step("Найти кликабельный элемент")
     def find_clickable(self, locator):
-        """Дождаться кликабельности элемента и вернуть его."""
         return self.wait.until(EC.element_to_be_clickable(locator))
 
+    @allure.step("Кликнуть по элементу")
     def click(self, locator):
-        """Кликнуть по элементу."""
         self.find_clickable(locator).click()
 
+    @allure.step("Ввести текст")
     def type_text(self, locator, text):
-        """Ввести текст в поле."""
         field = self.find_clickable(locator)
         field.clear()
         field.send_keys(text)
 
+    @allure.step("Прокрутить до элемента")
     def scroll_into_view(self, locator):
-        """Прокрутить страницу до элемента."""
         element = self.find(locator)
         self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
         return element
 
+    @allure.step("Кликнуть через JS")
+    def js_click(self, locator):
+        element = self.find_clickable(locator)
+        self.driver.execute_script("arguments[0].click();", element)
+
+    @allure.step("Прокрутить и кликнуть через JS")
+    def scroll_and_js_click(self, locator):
+        element = self.scroll_into_view(locator)
+        self.driver.execute_script("arguments[0].click();", element)
+
+    @allure.step("Проверить видимость элемента")
     def is_visible(self, locator):
-        """Проверить, виден ли элемент."""
         return self.wait.until(EC.visibility_of_element_located(locator))
 
+    @allure.step("Получить текст элемента")
     def get_text(self, locator):
-        """Получить текст элемента."""
         return self.find(locator).text
+
+    @allure.step("Получить текущий URL")
+    def get_current_url(self):
+        return self.driver.current_url
+
+    @allure.step("Переключиться на новую вкладку")
+    def switch_to_new_tab(self):
+        original = self.driver.current_window_handle
+        self.wait.until(lambda d: len(d.window_handles) > 1)
+        new_window = [w for w in self.driver.window_handles if w != original][0]
+        self.driver.switch_to.window(new_window)
+        self.wait.until(lambda d: d.current_url != "about:blank")
+        return self.driver.current_url
