@@ -1,15 +1,23 @@
 import pytest
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--headless",
+        action="store_true",
+        default=False,
+        help="Запустить браузер в headless-режиме (без открытия окна)"
+    )
 
 
 @pytest.fixture(scope="function")
-def driver():
+def driver(request):
     """Создаём Firefox WebDriver перед каждым тестом и закрываем после."""
     options = Options()
-    # Раскомментируй строку ниже, если нужен headless-режим (без открытия браузера):
-    # options.add_argument("--headless")
+    if request.config.getoption("--headless"):
+        options.add_argument("--headless")
 
     driver = webdriver.Firefox(options=options)
     driver.maximize_window()

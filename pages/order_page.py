@@ -4,6 +4,7 @@ Page Object для страницы оформления заказа.
 Шаг 2: «Про аренду» — дата, срок, цвет, комментарий.
 """
 
+import allure
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
@@ -21,6 +22,7 @@ class OrderPage(BasePage):
     BUTTON_NEXT = (By.XPATH, "//button[contains(., 'Далее')]")
     METRO_DROPDOWN_OPTION = (By.XPATH, "//li[contains(@class,'select-search__row')]//button")
 
+    @allure.step("Заполнить шаг 1: имя={name}, фамилия={last_name}, адрес={address}, метро={metro}, телефон={phone}")
     def fill_step1(self, name, last_name, address, metro, phone):
         self.type_text(self.FIELD_NAME, name)
         self.type_text(self.FIELD_LAST_NAME, last_name)
@@ -65,6 +67,7 @@ class OrderPageStep2(BasePage):
     }
 
 
+    @allure.step("Заполнить шаг 2: дата={date}, период={rent_period}, цвет={color}, комментарий={comment}")
     def fill_step2(self, date, rent_period, color, comment):
         self._enter_date(date)
         self._select_rent_period(rent_period)

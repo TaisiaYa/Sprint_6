@@ -7,27 +7,34 @@ from data import ORDER_DATA_TOP, ORDER_DATA_BOTTOM
 @allure.feature("Оформление заказа самоката")
 class TestOrder:
 
-    @staticmethod
-    def _fill_and_submit_order(driver, order_data):
-        """Вспомогательный метод: заполняет форму и подтверждает заказ."""
+    @allure.title("Заказ через верхнюю кнопку — проверка логотипа Самоката")
+    def test_order_top_button_logo_samokat(self, driver):
+        """Верхняя кнопка Заказать → заполнить форму → логотип Самоката → главная."""
+        main_page = MainPage(driver)
         order_page = OrderPage(driver)
         step2 = OrderPageStep2(driver)
 
+        with allure.step("Открыть главную страницу"):
+            main_page.open()
+
+        with allure.step("Нажать верхнюю кнопку Заказать"):
+            main_page.click_order_top()
+
         with allure.step("Шаг 1 — заполнить личные данные"):
             order_page.fill_step1(
-                name=order_data["name"],
-                last_name=order_data["last_name"],
-                address=order_data["address"],
-                metro=order_data["metro"],
-                phone=order_data["phone"],
+                name=ORDER_DATA_TOP["name"],
+                last_name=ORDER_DATA_TOP["last_name"],
+                address=ORDER_DATA_TOP["address"],
+                metro=ORDER_DATA_TOP["metro"],
+                phone=ORDER_DATA_TOP["phone"],
             )
 
         with allure.step("Шаг 2 — заполнить детали аренды"):
             step2.fill_step2(
-                date=order_data["date"],
-                rent_period=order_data["rent_period"],
-                color=order_data["color"],
-                comment=order_data["comment"],
+                date=ORDER_DATA_TOP["date"],
+                rent_period=ORDER_DATA_TOP["rent_period"],
+                color=ORDER_DATA_TOP["color"],
+                comment=ORDER_DATA_TOP["comment"],
             )
 
         with allure.step("Нажать Заказать и подтвердить"):
@@ -37,21 +44,6 @@ class TestOrder:
             assert step2.is_success_modal_shown(), (
                 "Модальное окно об успешном создании заказа не появилось"
             )
-
-        return step2
-
-    @allure.title("Заказ через верхнюю кнопку — проверка логотипа Самоката")
-    def test_order_top_button_logo_samokat(self, driver):
-        """Верхняя кнопка Заказать → заполнить форму → логотип Самоката → главная."""
-        main_page = MainPage(driver)
-
-        with allure.step("Открыть главную страницу"):
-            main_page.open()
-
-        with allure.step("Нажать верхнюю кнопку Заказать"):
-            main_page.click_order_top()
-
-        self._fill_and_submit_order(driver, ORDER_DATA_TOP)
 
         with allure.step("Кликнуть логотип Самоката и проверить переход на главную"):
             main_page.click_logo_samokat()
@@ -63,6 +55,8 @@ class TestOrder:
     def test_order_bottom_button_logo_yandex(self, driver):
         """Нижняя кнопка Заказать → заполнить форму → логотип Яндекса → Дзен."""
         main_page = MainPage(driver)
+        order_page = OrderPage(driver)
+        step2 = OrderPageStep2(driver)
 
         with allure.step("Открыть главную страницу"):
             main_page.open()
@@ -70,7 +64,30 @@ class TestOrder:
         with allure.step("Нажать нижнюю кнопку Заказать"):
             main_page.click_order_bottom()
 
-        self._fill_and_submit_order(driver, ORDER_DATA_BOTTOM)
+        with allure.step("Шаг 1 — заполнить личные данные"):
+            order_page.fill_step1(
+                name=ORDER_DATA_BOTTOM["name"],
+                last_name=ORDER_DATA_BOTTOM["last_name"],
+                address=ORDER_DATA_BOTTOM["address"],
+                metro=ORDER_DATA_BOTTOM["metro"],
+                phone=ORDER_DATA_BOTTOM["phone"],
+            )
+
+        with allure.step("Шаг 2 — заполнить детали аренды"):
+            step2.fill_step2(
+                date=ORDER_DATA_BOTTOM["date"],
+                rent_period=ORDER_DATA_BOTTOM["rent_period"],
+                color=ORDER_DATA_BOTTOM["color"],
+                comment=ORDER_DATA_BOTTOM["comment"],
+            )
+
+        with allure.step("Нажать Заказать и подтвердить"):
+            step2.submit_order()
+
+        with allure.step("Проверить всплывающее окно «Заказ оформлен»"):
+            assert step2.is_success_modal_shown(), (
+                "Модальное окно об успешном создании заказа не появилось"
+            )
 
         with allure.step("Кликнуть логотип Яндекса и проверить открытие Дзена"):
             main_page.click_logo_yandex()
